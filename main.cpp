@@ -2,7 +2,8 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include <ctime>
+#include <iomanip>
+#include <chrono>
 #include <string>
 
 // Function to read array from file
@@ -19,79 +20,114 @@ void readArrayFromFile(const std::string &filename, std::vector<int> &arr)
 }
 
 // Function to measure time for sorting function (single-argument functions)
-long double measureSortTime(void (*sortFunc)(int *, int), std::vector<int> &arr, int iterations)
+long double measureSortTime(void (*sortFunc)(int *, int), std::vector<int> arr, int iterations)
 {
     std::vector<int> originalArr = arr;
-    long double start, finish, totalElapsed = 0.0;
+    long double totalElapsed = 0.0;
 
-    start = static_cast<long double>(clock()) / CLOCKS_PER_SEC;
+    auto start = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iterations; ++i)
     {
         arr = originalArr;
         sortFunc(arr.data(), arr.size());
     }
-    finish = static_cast<long double>(clock()) / CLOCKS_PER_SEC;
-    totalElapsed = 1e9 * (finish - start) / iterations;
+    auto finish = std::chrono::high_resolution_clock::now();
+    totalElapsed = std::chrono::duration<long double, std::nano>(finish - start).count() / iterations;
 
     return totalElapsed;
 }
 
 // Function to measure time for sorting function (two-argument functions)
-long double measureSortTime(void (*sortFunc)(int *, int, int), std::vector<int> &arr, int iterations)
+long double measureSortTime(void (*sortFunc)(int *, int, int), std::vector<int> arr, int iterations)
 {
     std::vector<int> originalArr = arr;
-    long double start, finish, totalElapsed = 0.0;
+    long double totalElapsed = 0.0;
 
-    start = static_cast<long double>(clock()) / CLOCKS_PER_SEC;
+    auto start = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iterations; ++i)
     {
         arr = originalArr;
         sortFunc(arr.data(), 0, arr.size() - 1);
     }
-    finish = static_cast<long double>(clock()) / CLOCKS_PER_SEC;
-    totalElapsed = 1e9 * (finish - start) / iterations;
+    auto finish = std::chrono::high_resolution_clock::now();
+    totalElapsed = std::chrono::duration<long double, std::nano>(finish - start).count() / iterations;
 
     return totalElapsed;
 }
 
+// Function to convert results to CSV format
+void exportResultsToCSV(const std::string &filename, const std::vector<int> &sizes, const std::vector<std::string> &types,
+                        const std::vector<std::string> &sortNames, const std::vector<std::vector<std::vector<long double>>> &results)
+{
+    std::ofstream csvFile(filename);
+
+    // Write header
+    csvFile << "Array Size,Type";
+    for (const auto &sortName : sortNames)
+    {
+        csvFile << "," << sortName << " (ns)";
+    }
+    csvFile << "\n";
+
+    // Write results
+    for (size_t s = 0; s < sizes.size(); ++s)
+    {
+        for (size_t t = 0; t < types.size(); ++t)
+        {
+            csvFile << sizes[s] << "," << types[t];
+            for (size_t i = 0; i < sortNames.size(); ++i)
+            {
+                csvFile << "," << results[s][t][i];
+            }
+            csvFile << "\n";
+        }
+    }
+
+    csvFile.close();
+}
+
 int main()
 {
-    std::vector<int> oarr, arr;
-    int sizes[] = {100, 1000, 10000};
-    std::string types[] = {"random", "sorted", "reverse_sorted"};
+    std::vector<int> arr;
+    std::vector<int> sizes = {100, 1000, 10000};
+    std::vector<std::string> types = {"random", "sorted", "reverse_sorted"};
+    std::vector<std::string> sortNames = {"MysterySort1", "MysterySort2", "MysterySort3", "MysterySort4", "MysterySort5"};
 
-    for (int size : sizes)
+    // 3D vector to store results: [size][type][sort algorithm]
+    std::vector<std::vector<std::vector<long double>>> results(
+        sizes.size(), std::vector<std::vector<long double>>(
+                          types.size(), std::vector<long double>(sortNames.size())));
+
+    for (size_t s = 0; s < sizes.size(); ++s)
     {
-        for (const std::string &type : types)
+        for (size_t t = 0; t < types.size(); ++t)
         {
-            std::string filename = "input/input_" + type + "_" + std::to_string(size) + ".txt";
-            readArrayFromFile(filename, oarr);
+            std::string filename = "input/input_" + types[t] + "_" + std::to_string(sizes[s]) + ".txt";
+            readArrayFromFile(filename, arr);
 
             std::cout << std::endl
-                      << "Array size: " << size << ", Type: " << type << std::endl
-                      << std::endl;
+                      << "Array size: " << sizes[s] << ", Type: " << types[t] << std::endl;
 
             // Calculate the number of iterations
-            int iterations = std::max(100000 / size, 1);
+            int iterations = std::max(1, 100000 / sizes[s]);
 
             // Time measurement for each sorting algorithm
-            arr = oarr;
-            std::cout << "MysterySort1: " << measureSortTime(MysterySort1, arr, iterations) << " nanoseconds" << std::endl;
+            results[s][t][0] = measureSortTime(MysterySort1, arr, iterations);
+            results[s][t][1] = measureSortTime(MysterySort2, arr, iterations);
+            results[s][t][2] = measureSortTime(MysterySort3, arr, iterations);
+            results[s][t][3] = measureSortTime(MysterySort4, arr, iterations);
+            results[s][t][4] = measureSortTime(MysterySort5, arr, iterations);
 
-            arr = oarr;
-            std::cout << "MysterySort2: " << measureSortTime(MysterySort2, arr, iterations) << " nanoseconds" << std::endl;
-
-            arr = oarr;
-            std::cout << "MysterySort3: " << measureSortTime(MysterySort3, arr, iterations) << " nanoseconds" << std::endl;
-
-            arr = oarr;
-            std::cout << "MysterySort4: " << measureSortTime(MysterySort4, arr, iterations) << " nanoseconds" << std::endl;
-
-            arr = oarr;
-            std::cout << "MysterySort5: " << measureSortTime(MysterySort5, arr, iterations) << " nanoseconds" << std::endl;
+            // Print results
+            for (size_t i = 0; i < sortNames.size(); ++i)
+            {
+                std::cout << std::setw(12) << std::left << sortNames[i] << ": "
+                          << std::fixed << std::setprecision(2) << results[s][t][i] << " ns" << std::endl;
+            }
         }
         std::cout << std::endl;
     }
+    exportResultsToCSV("sorting_results.csv", sizes, types, sortNames, results);
 
     return 0;
 }
