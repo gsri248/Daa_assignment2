@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <chrono>
 #include <string>
+#include <map>
+#include <algorithm>
 
 // Function to read array from file
 void readArrayFromFile(const std::string &filename, std::vector<int> &arr)
@@ -86,6 +88,65 @@ void exportResultsToCSV(const std::string &filename, const std::vector<int> &siz
     csvFile.close();
 }
 
+// Function to identify the sorts
+std::map<std::string, std::string> identifySorts(const std::vector<std::vector<long double>> &results)
+{
+    std::vector<std::string> sortNames = {"MysterySort1", "MysterySort2", "MysterySort3", "MysterySort4", "MysterySort5"};
+    std::map<std::string, std::string> identifiedSorts;
+
+    // Step 1: Top 2 of the random column
+    auto getTopTwoIndices = [](const std::vector<long double> &times)
+    {
+        int first = 0, second = 1;
+        if (times[first] > times[second])
+            std::swap(first, second);
+
+        for (int i = 2; i < times.size(); ++i)
+        {
+            if (times[i] < times[first])
+            {
+                second = first;
+                first = i;
+            }
+            else if (times[i] < times[second])
+            {
+                second = i;
+            }
+        }
+        return std::make_pair(first, second);
+    };
+
+    auto getMinIndex = [](const std::vector<long double> &times)
+    {
+        return std::distance(times.begin(), std::min_element(times.begin(), times.end()));
+    };
+
+    std::pair<int, int> topTwo = getTopTwoIndices(results[0]);
+    int first = topTwo.first;
+    int second = topTwo.second;
+
+    int quickSort = (results[1][first] > results[1][second]) ? first : second;
+    int mergeSort = (quickSort == first) ? second : first;
+
+    int insertionSort = getMinIndex(results[1]);
+
+    std::vector<int> remaining = {0, 1, 2, 3, 4};
+    remaining.erase(std::remove(remaining.begin(), remaining.end(), quickSort), remaining.end());
+    remaining.erase(std::remove(remaining.begin(), remaining.end(), mergeSort), remaining.end());
+    remaining.erase(std::remove(remaining.begin(), remaining.end(), insertionSort), remaining.end());
+
+    int selectionSort = (results[2][remaining[0]] < results[2][remaining[1]]) ? remaining[0] : remaining[1];
+    int bubbleSort = (selectionSort == remaining[0]) ? remaining[1] : remaining[0];
+
+    identifiedSorts["QuickSort"] = sortNames[quickSort];
+    identifiedSorts["MergeSort"] = sortNames[mergeSort];
+    identifiedSorts["InsertionSort"] = sortNames[insertionSort];
+    identifiedSorts["SelectionSort"] = sortNames[selectionSort];
+    identifiedSorts["BubbleSort"] = sortNames[bubbleSort];
+
+    return identifiedSorts;
+}
+
 int main()
 {
     std::vector<int> arr;
@@ -127,7 +188,17 @@ int main()
         }
         std::cout << std::endl;
     }
+
+    // Export results to CSV file
     exportResultsToCSV("sorting_results.csv", sizes, types, sortNames, results);
+
+    // Identify sorts and print the results
+    auto identifiedSorts = identifySorts(results[2]); // Assuming 10000 size data
+    std::cout << "\nIdentified Sorting Algorithms:" << std::endl;
+    for (const auto &pair : identifiedSorts)
+    {
+        std::cout << pair.first << ": " << pair.second << std::endl;
+    }
 
     return 0;
 }
