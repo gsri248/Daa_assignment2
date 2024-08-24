@@ -1,5 +1,5 @@
 #include "mysterysorts.h"
-#include <bits/stdc++.h>
+#include <bits/stdc++.h> // Contains all the required headers for clock etc.
 
 // Function to read array from file
 void readArrayFromFile(const std::string &filename, std::vector<int> &arr)
