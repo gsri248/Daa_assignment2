@@ -15,24 +15,6 @@ void readArrayFromFile(const std::string &filename, std::vector<int> &arr)
 }
 
 // Function to measure time for sorting function (single-argument functions)
-long double measureSortTime(void (*sortFunc)(int *, int), std::vector<int> arr, int iterations)
-{
-    std::vector<int> originalArr = arr;
-    long double totalElapsed = 0.0;
-
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < iterations; ++i)
-    {
-        arr = originalArr;
-        sortFunc(arr.data(), arr.size());
-    }
-    auto finish = std::chrono::high_resolution_clock::now();
-    totalElapsed = std::chrono::duration<long double, std::nano>(finish - start).count() / iterations;
-
-    return totalElapsed;
-}
-
-// Function to measure time for sorting function (two-argument functions)
 long double measureSortTime(void (*sortFunc)(int *, int, int), std::vector<int> arr, int iterations)
 {
     std::vector<int> originalArr = arr;
@@ -42,7 +24,25 @@ long double measureSortTime(void (*sortFunc)(int *, int, int), std::vector<int> 
     for (int i = 0; i < iterations; ++i)
     {
         arr = originalArr;
-        sortFunc(arr.data(), 0, arr.size() - 1);
+        sortFunc(arr.data(), arr.size(), 5);
+    }
+    auto finish = std::chrono::high_resolution_clock::now();
+    totalElapsed = std::chrono::duration<long double, std::nano>(finish - start).count() / iterations;
+
+    return totalElapsed;
+}
+
+// Function to measure time for sorting function (two-argument functions)
+long double measureSortTime(void (*sortFunc)(int *, int, int, int), std::vector<int> arr, int iterations)
+{
+    std::vector<int> originalArr = arr;
+    long double totalElapsed = 0.0;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i)
+    {
+        arr = originalArr;
+        sortFunc(arr.data(), 0, arr.size() - 1, 5);
     }
     auto finish = std::chrono::high_resolution_clock::now();
     totalElapsed = std::chrono::duration<long double, std::nano>(finish - start).count() / iterations;
@@ -241,6 +241,7 @@ int main()
     {
         for (size_t t = 0; t < types.size(); ++t)
         {
+            int time_limit = 5;
             std::string filename = "input/input_" + types[t] + "_" + std::to_string(sizes[s]) + ".txt";
             readArrayFromFile(filename, arr);
 
